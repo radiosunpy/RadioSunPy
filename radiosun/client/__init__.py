@@ -1,1 +1,1 @@
-from radiosun.client.client import *
+from radiosun.client import *
