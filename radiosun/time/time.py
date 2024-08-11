@@ -159,12 +159,12 @@ def get_time_format(time_string: str) -> Optional[str]:
     :returns: The format string if a matching format is found, otherwise None.
     :rtype: Optional[str]
 
-    **Example:**
+    :Example:
 
     .. code-block:: python
 
         >>> get_time_format('2020-01-01T00:00:00.000000')
-        # Returns: '%Y-%m-%dT%H:%M:%S.%f'
+        Returns: '%Y-%m-%dT%H:%M:%S.%f'
     """
     for time_format in COMMON_TIME_FORMATS:
         if regex_time(time_string, time_format) is not None:

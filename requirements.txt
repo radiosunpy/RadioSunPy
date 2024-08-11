@@ -1,5 +1,8 @@
-beautifulsoup4
 numpy
 astropy
 requests
 python-dateutil
+pytest
+pandas
+scipy
+PyWavelets
