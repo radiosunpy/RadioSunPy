@@ -1,8 +1,10 @@
 import pytest
+from pathlib import Path
 from radiosun.time.timerange import TimeRange
 from radiosun.client.client import SRSClient, RATANClient
 from urllib.request import urlopen
 from astropy.table import  Table
+from astropy.io import fits
 
 
 @pytest.fixture
@@ -72,3 +74,34 @@ class TestRATANClient:
         tables = ratan_client.get_scans(tr)
         assert len(tables) == 1
         assert isinstance(tables[0], Table)
+
+    def test_process_fits_data(self, ratan_client, r_fits_url):
+
+        raw, processed = ratan_client.process_fits_data(r_fits_url,
+                                                   save_path=None,
+                                                   save_with_original=False)
+        assert isinstance(processed, fits.hdu.hdulist.HDUList)
+        assert isinstance(raw, fits.hdu.hdulist.HDUList)
+        assert processed[1].header['NAXIS'] == 2
+        assert processed[1].name == 'I'
+        assert processed[2].header['NAXIS'] == 2
+        assert processed[2].name == 'V'
+
+    def test_process_fits_data_with_saving(self, ratan_client, r_fits_url):
+        save_path = Path(__file__).absolute().parents[1]/'data'
+        raw, processed = ratan_client.process_fits_data(r_fits_url,
+                                                       save_path=save_path,
+                                                       save_with_original=False,
+                                                       save_raw=True
+                                                    )
+        assert isinstance(processed, fits.hdu.hdulist.HDUList)
+
+    def test_process_fits_data_from_disk(self, ratan_client):
+        save_path = Path(__file__).absolute().parents[1]/'data'
+        data_path = Path(__file__).absolute().parents[1]/'data'/'20170903_121257_sun+0_out.fits'
+        raw, processed = ratan_client.process_fits_data(data_path,
+                                                       save_path=save_path,
+                                                       save_with_original=False,
+                                                       save_raw=False
+                                                    )
+        assert isinstance(processed, fits.hdu.hdulist.HDUList)

@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, Optional
 from pathlib import Path
 from urllib.request import urlopen
 from collections import OrderedDict
@@ -51,7 +51,9 @@ class SRSClient(BaseClient):
         for i, line in enumerate(content):
             if re.match(r'^(I\.|IA\.|II\.)', line):
                 section.append(i)
-            if re.match(r'^(III|COMMENT|EFFECTIVE 2 OCT 2000|PLAIN|This message is for users of the NOAA/SEC Space|NNN)', line, re.IGNORECASE):
+            if re.match(
+                    r'^(III|COMMENT|EFFECTIVE 2 OCT 2000|PLAIN|This message is for users of the NOAA/SEC Space|NNN)',
+                    line, re.IGNORECASE):
                 final_section.append(i)
 
         if final_section and final_section[0] > section[-1]:
@@ -64,8 +66,8 @@ class SRSClient(BaseClient):
         table1[1] = re.sub(r'Mag\s*Type', r'Magtype', table1[1], flags=re.IGNORECASE)
         table2 = content[section[1]:section[2]]
         if len(section) > 3:
-             table3 = content[section[2]:section[3]]
-             extra_lines = content[section[3]:]
+            table3 = content[section[2]:section[3]]
+            extra_lines = content[section[3]:]
         else:
             table3 = content[section[2]:]
             extra_lines = None
@@ -208,7 +210,7 @@ class SRSClient(BaseClient):
         """
         file_urls = self.acquire_data(timerange)
         return self.form_data(file_urls)
-    
+
 
 class RATANClient(BaseClient):
     """ Client for processing and analyzing data from the RATAN-600 radio telescope.
@@ -274,12 +276,111 @@ class RATANClient(BaseClient):
         Model for the quiet Sun brightness temperature, loaded from the Excel file.
     """
 
-
     base_url = 'http://spbf.sao.ru/data/ratan/%Y/%m/%Y%m%d_%H%M%S_sun+0_out.fits'
     regex_pattern = '((\d{6,8})[^0-9].*[^0-9]0_out.fits)'
 
     convolution_template = pd.read_excel(Path(__file__).absolute().parent.joinpath('quiet_sun_template.xlsx'))
     quiet_sun_model = pd.read_excel(Path(__file__).absolute().parent.joinpath('quiet_sun_model.xlsx'))
+
+    def process_fits_data(self,
+                          path_to_file: str,
+                          bad_freq: Optional[list[float]] = None,
+                          save_path: Optional[str] = None,
+                          save_with_original: bool = False,
+                          save_raw: bool = False
+                          ) -> fits.HDUList:
+        """
+        Process FITS data from a given URL or file_path from the disk, optionally saving the original and processed data to a file,
+        and return the processed data as a FITS HDUList object.
+
+        :param path_to_file: The URL of the FITS file to process or path to file at disk.
+        :type path_to_file: str
+        :param bad_freq: A list of bad frequencies to exclude from the data acquisition.
+        :type bad_freq: list of float
+        :param save_path: Path to save the processed FITS data. If None, the processed FITS object is returned.
+        :type save_path: Optional[str]
+        :param save_with_original: Whether to save the original data or not.
+        :type save_with_original: bool
+        :param save_raw: Whether to save raw FITS data or not.
+         :type save_raw: bool
+        :returns: The processed FITS data object.
+        :rtype: fits.HDUList
+
+        :Example:
+
+        .. code-block:: python
+
+            >>> # Assuming you have a FITS file at 'test.fits'
+            >>> hdul = process_fits_data('http://spbf.sao.ru/data/ratan/2017/09/20170903_121257_sun+0_out.fits')
+            >>> isinstance(hdul, fits.HDUList)
+            >>> # Assuming you have a FITS file at 'test.fits'
+            >>> hdul = process_fits_data('http://spbf.sao.ru/data/ratan/2017/09/20170903_121257_sun+0_out.fits')
+            >>> isinstance(hdul, fits.HDUList)
+            True
+        """
+        if bad_freq is None:
+            bad_freq = [15.0938, 15.2812, 15.4688, 15.6562, 15.8438, 16.0312, 16.2188, 16.4062]
+        file_name = str(path_to_file).split('/')[-1]
+        file_name_processed = file_name.split('.fits')[0]+'_processed.fits'
+        hdul = fits.open(path_to_file)
+        data = hdul[0].data
+
+        CDELT1 = hdul[0].header['CDELT1']
+        CRPIX = hdul[0].header['CRPIX1']
+        SOLAR_R = hdul[0].header['SOLAR_R'] * 1.01175
+        SOLAR_B = hdul[0].header['SOLAR_B']
+        FREQ = hdul[1].data['FREQ']
+        OBS_DATE = hdul[0].header['DATE-OBS']
+        OBS_TIME = hdul[0].header['TIME-OBS']
+        bad_freq = np.isin(FREQ, bad_freq)
+
+        AZIMUTH = hdul[0].header['AZIMUTH']
+        SOL_DEC = hdul[0].header['SOL_DEC']
+        SOLAR_P = hdul[0].header['SOLAR_P']
+
+        angle = self.pozitional_angle(AZIMUTH, SOL_DEC, SOLAR_P)
+        N_shape = data.shape[2]
+        x = np.linspace(
+            - CRPIX * CDELT1,
+            (N_shape - CRPIX) * CDELT1,
+            num=N_shape
+        )
+        flux_eficiency = self.antenna_efficiency(FREQ, SOLAR_R)
+        mask, I, V = self.calibrate_QSModel(x, data, SOLAR_R, FREQ, flux_eficiency)
+        I, V, FREQ = I[~bad_freq], V[~bad_freq], FREQ[~bad_freq]
+
+        # Pack the processed data into FITS format
+        if save_with_original:
+            primary_hdu = fits.PrimaryHDU(data)
+        else:
+            primary_hdu = fits.PrimaryHDU()
+        I_hdu = fits.ImageHDU(data=I.astype('float32'), name='I')
+        V_hdu = fits.ImageHDU(data=V.astype('float32'), name='V')
+        freq_hdu = fits.ImageHDU(data=FREQ.astype('float32'), name='FREQ')
+
+        header = primary_hdu.header
+        header['CDELT1'] = CDELT1
+        header['CRPIX'] = CRPIX
+        header['SOLAR_R'] = SOLAR_R
+        header['SOLAR_B'] = SOLAR_B
+        header['DATE-OBS'] = OBS_DATE
+        header['TIME-OBS'] = OBS_TIME
+        header['AZIMUTH'] = AZIMUTH
+        header['SOL_DEC'] = SOL_DEC
+        header['SOLAR_P'] = SOLAR_P
+        header['ANGLE'] = angle
+
+        hdulist = fits.HDUList([primary_hdu, I_hdu, V_hdu, freq_hdu, hdul[1]])
+
+        if save_path:
+            hdulist.verify('fix')
+            hdulist.writeto(Path(save_path)/file_name_processed, overwrite=True)
+        if save_raw:
+            hdul.verify('fix')
+            hdul.writeto(Path(save_path)/file_name, overwrite=True)
+
+
+        return hdul, hdulist
 
     def condition(self, year, month, data_match):
         """
@@ -313,8 +414,8 @@ class RATANClient(BaseClient):
         :return:
         """
         size = 1000
-        x = np.linspace(-size//2, size//2, size)
-        y = np.linspace(-size//2, size//2, size)
+        x = np.linspace(-size // 2, size // 2, size)
+        y = np.linspace(-size // 2, size // 2, size)
         gaussian = gauss2d(x, y, 1, 1, 0, 0, sigma_horiz, sigma_vert)
         rectangle = create_rectangle(size, 6 * sigma_horiz, 4 * R)
         sun_model = create_sun_model(size, R)
@@ -334,7 +435,7 @@ class RATANClient(BaseClient):
         area_ratio = area_gaussian / area_rectangle
         return area_ratio
 
-    def antenna_efficiency(self, freq: List[float], R: float)-> List[float]:
+    def antenna_efficiency(self, freq: List[float], R: float) -> List[float]:
         """
         Calculates the antenna efficiency for each frequency.
 
@@ -355,9 +456,9 @@ class RATANClient(BaseClient):
             areas.append(area_ratio)
         return areas
 
-    def calibrate_QSModel(self, x: np.ndarray, scan_data:np.ndarray,
+    def calibrate_QSModel(self, x: np.ndarray, scan_data: np.ndarray,
                           solar_r: float, frequency: np.ndarray,
-                          flux_eficiency: np.ndarray)-> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+                          flux_eficiency: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Calibrates raw scan data with the quiet Sun model.
         :param x: Array of x coordinates
@@ -372,8 +473,8 @@ class RATANClient(BaseClient):
         :type: np.ndarray
         :return: calibrated scan: mask, Stocks component I, Stocks component V
         """
-        K_b = 1.38 * 10 ** (-23) # Boltzmann constant
-        c = 3 * 10 ** 8 # Speed of light in vacuum
+        K_b = 1.38 * 10 ** (-23)  # Boltzmann constant
+        c = 3 * 10 ** 8  # Speed of light in vacuum
         freq_size = len(frequency)
         model_freq = self.convolution_template.columns[1:].values.astype(float)
 
@@ -382,7 +483,8 @@ class RATANClient(BaseClient):
         real_brightness = interp1d(template_freq, template_val, bounds_error=False, fill_value="extrapolate")
         full_flux = np.column_stack([
             frequency,
-            2 * 10 ** 22 * K_b * real_brightness(frequency) * SunSolidAngle(solar_r) * (c / (frequency * 10 ** 9)) ** (-2)
+            2 * 10 ** 22 * K_b * real_brightness(frequency) * SunSolidAngle(solar_r) * (c / (frequency * 10 ** 9)) ** (
+                -2)
         ])
 
         R = scan_data[:, 0, :] + scan_data[:, 1, :]
@@ -418,7 +520,7 @@ class RATANClient(BaseClient):
         return mask, (calibrated_R + calibrated_L) / 2, (calibrated_R - calibrated_L) / 2
 
     def heliocentric_transform(self, Lat: np.ndarray, Long: np.ndarray,
-                               SOLAR_R: float, SOLAR_B: float)-> Tuple[np.ndarray, np.ndarray]:
+                               SOLAR_R: float, SOLAR_B: float) -> Tuple[np.ndarray, np.ndarray]:
         """
         Transforms solar coordinates to a heliocentric system.
         :param Lat:  Latitude array in degrees
@@ -574,7 +676,8 @@ class RATANClient(BaseClient):
                     ar_info['Sigma'][local_index][index] = {'freq': freq, 'sigma': stddev}
                     ar_info['FWHM'][local_index][index] = {'freq': freq, 'fwhm': 2 * np.sqrt(2 * np.log(2)) * stddev}
                     ar_info['Range'][local_index][index] = {'freq': freq, 'x_range': (np.min(x_range), np.max(x_range))}
-                    ar_info['Flux'][local_index][index] = {'freq': freq, 'flux': np.sqrt(2 * np.pi) * amplitude * stddev}
+                    ar_info['Flux'][local_index][index] = {'freq': freq,
+                                                           'flux': np.sqrt(2 * np.pi) * amplitude * stddev}
                     ar_info['Total Flux'][local_index][index] = {'freq': freq, 'flux': total_flux}
         return ar_info
 
@@ -689,7 +792,7 @@ class RATANClient(BaseClient):
             srs_table = srs.get_data(TimeRange(OBS_DATE, OBS_DATE))
             srs_table = srs_table[srs_table['ID'] == 'I']
             srs_table['Longitude'] = (
-                srs_table['Longitude'] + self.differential_rotation(srs_table['Latitude']) * diff_hours / 24
+                    srs_table['Longitude'] + self.differential_rotation(srs_table['Latitude']) * diff_hours / 24
             ).astype(int)
 
             srs_table['Latitude'], srs_table['Longitude'] = self.heliocentric_transform(
@@ -707,14 +810,22 @@ class RATANClient(BaseClient):
 
             ar_info = self.active_regions_search(srs_table, x, V, mask)
             ar_amount = len(ar_info)
-            ar_info.add_column(Column(name='Azimuth', data=[AZIMUTH]*ar_amount, dtype=('i2')), index=1)
-            ar_info.add_column(Column(name='Amplitude', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
-            ar_info.add_column(Column(name='Mean', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
-            ar_info.add_column(Column(name='Sigma', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
-            ar_info.add_column(Column(name='FWHM', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
-            ar_info.add_column(Column(name='Flux', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
-            ar_info.add_column(Column(name='Total Flux', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
-            ar_info.add_column(Column(name='Range', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
+            ar_info.add_column(Column(name='Azimuth', data=[AZIMUTH] * ar_amount, dtype=('i2')), index=1)
+            ar_info.add_column(
+                Column(name='Amplitude', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
+            ar_info.add_column(
+                Column(name='Mean', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
+            ar_info.add_column(
+                Column(name='Sigma', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
+            ar_info.add_column(
+                Column(name='FWHM', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
+            ar_info.add_column(
+                Column(name='Flux', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
+            ar_info.add_column(
+                Column(name='Total Flux', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)],
+                       dtype=object))
+            ar_info.add_column(
+                Column(name='Range', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
 
             ratan_data = list(zip(FREQ, I, V))
             gauss_analysis_info = self.gauss_analysis(x, ratan_data, ar_info)
@@ -724,4 +835,3 @@ class RATANClient(BaseClient):
     def get_data(self, timerange):
         file_urls = self.acquire_data(timerange)
         return self.form_data(file_urls)
-
