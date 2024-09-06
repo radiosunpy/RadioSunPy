@@ -1,4 +1,6 @@
 from abc import ABCMeta, abstractmethod
+from typing import List, Tuple, Any
+from pathlib import Path
 from urllib.request import urlopen
 from collections import OrderedDict
 from datetime import datetime
@@ -24,22 +26,26 @@ from radiosun.utils import *
 
 class BaseClient(metaclass=ABCMeta):
     @abstractmethod
-    def acquire_data():
+    def acquire_data(self):
         pass
 
     @abstractmethod
-    def form_data():
+    def form_data(self):
         pass
 
     @abstractmethod
-    def get_data():
+    def get_data(self):
         pass
 
 
 class SRSClient(BaseClient):
     base_url = 'ftp://ftp.ngdc.noaa.gov/STP/swpc_products/daily_reports/solar_region_summaries/%Y/%m/%Y%m%dSRS.txt'
 
-    def extract_lines(self, content):
+    def extract_lines(self, content: str) -> object:
+        """
+
+        :type content: str with the source data by link
+        """
         section, final_section = [], []
 
         for i, line in enumerate(content):
@@ -144,7 +150,15 @@ class SRSClient(BaseClient):
                 latitude_column[i] = self.parse_latitude(loc)
         return latitude_column
 
-    def acquire_data(self, timerange):
+    def acquire_data(self, timerange: TimeRange) -> list[str]:
+        """
+        Function for collecting data with predefined timerange
+
+        :param timerange: TimeRange object with time span for ARs searching
+        :type timerange: TimeRange
+        :returns: list of urls with txt files.
+        :rtype: list of string
+        """
         scrapper = Scrapper(self.base_url)
         return scrapper.form_fileslist(timerange)
 
@@ -185,18 +199,99 @@ class SRSClient(BaseClient):
         return Table(vstack(total_table))
 
     def get_data(self, timerange):
+        """
+        Function for collecting data with predefined timerange
+        :param timerange:
+        :type timerange: TimeRange
+        :return: data table
+        :rtype: Table
+        """
         file_urls = self.acquire_data(timerange)
         return self.form_data(file_urls)
     
 
 class RATANClient(BaseClient):
+    """ Client for processing and analyzing data from the RATAN-600 radio telescope.
+
+    RATANClient class is a complex implementation that extends a base client class for handling and processing data
+    related to solar observations using RATAN-600. The class provides a wide range of methods to acquire, process,
+    and analyze solar data from FITS (Flexible Image Transport System) files obtained from a given URL. Here’s an
+    overview of what each method does:
+
+    Key Components:
+    1. Initialization Parameters and Configuration:
+
+        - `base_url`: URL template to fetch solar data.
+        - regex_pattern: A regex pattern to match relevant data files.
+        - convolution_template and quiet_sun_model: Loaded from Excel files; these are templates or models of solar data
+        that will be used in the analysis.
+
+    2.Data Acquisition and Filtering:
+        - `acquire_data`: Uses a Scrapper class to form a list of data files for a given
+        time range, based on URL and regex pattern.
+        - `get_scans`: Fetches data from acquired file URLs, processes the FITS
+        files to extract relevant information, and returns a table with structured data.
+
+    3. Data Processing and Analysis:
+
+        3.1 Convolution and Efficiency Calculations:
+
+            - convolve_sun: Simulates the convolution of a solar model with Gaussian and rectangular functions, then
+              computes and returns the ratio of areas under these convolved functions.
+            - antenna_efficiency: Calculates the antenna efficiency across various frequencies using the convolution data.
+
+        3.2 Calibration:
+
+            - calibrate_QSModel: Calibrates the quiet sun model data against observed scan data, adjusting for flux efficiency
+              and other parameters
+
+        3.3 Positional and Rotational Transformations:
+            - heliocentric_transform: Converts solar latitude and longitude into heliocentric coordinates.
+            - pozitional_rotation: Rotates positional data based on a given angle.
+            - differential_rotation: Calculates the differential rotation rate of the sun based on latitude.
+            - pozitional_angle: Computes the positional angle of the sun based on azimuth, solar declination, and solar P-angle.
+
+        3.4 Active Regions and Peak Analysis:
+            - active_regions_search: Identifies active regions on the sun by comparing observed data to known solar
+              active region locations using wavelet denoising and peak detection.
+            - make_multigauss_fit: Fits multiple Gaussian functions to data points, extracting amplitude, mean, and
+              standard deviation for each detected peak.
+            - gauss_analysis: Performs Gaussian analysis on identified active regions and associates various metrics
+              (amplitude, mean, flux, etc.) with these regions.
+
+
+
+
+    Attributes
+    ----------
+    base_url : str
+        Base URL template for accessing data files.
+    regex_pattern : str
+        Regular expression pattern to match file names.
+    convolution_template : pd.DataFrame
+        Template for convolving the quiet Sun model, loaded from the Excel file.
+    quiet_sun_model : pd.DataFrame
+        Model for the quiet Sun brightness temperature, loaded from the Excel file.
+    """
+
+
     base_url = 'http://spbf.sao.ru/data/ratan/%Y/%m/%Y%m%d_%H%M%S_sun+0_out.fits'
     regex_pattern = '((\d{6,8})[^0-9].*[^0-9]0_out.fits)'
 
-    convolution_template = pd.read_excel('radiosun/client/quiet_sun_template.xlsx')
-    quiet_sun_model = pd.read_excel('radiosun/client/quiet_sun_model.xlsx')
+    convolution_template = pd.read_excel(Path(__file__).absolute().parent.joinpath('quiet_sun_template.xlsx'))
+    quiet_sun_model = pd.read_excel(Path(__file__).absolute().parent.joinpath('quiet_sun_model.xlsx'))
 
     def condition(self, year, month, data_match):
+        """
+        Formats the data string based on the year and month. Used in Scrapper class
+        :param year: The year of the data.
+        :type year: str
+        :param month:
+        :type month: str
+        :param data_match: data text from http content
+        :type data_match: str
+        :return: string with selected data
+        """
         if int(year) < 2010 or (int(year) == 2010 and int(month) < 5):
             return f'{year[:2]}{data_match[:-4]}-{data_match[-4:-2]}-{data_match[-2:]}'
         else:
@@ -206,7 +301,17 @@ class RATANClient(BaseClient):
         pass
 
     @lru_cache(maxsize=None)
-    def convolve_sun(self, sigma_horiz, sigma_vert, R):
+    def convolve_sun(self, sigma_horiz: float, sigma_vert: float, R: float):
+        """    Performs convolution of the Sun model with Gaussian and rectangular functions.
+
+        :param sigma_horiz:
+        :type sigma_horiz: float
+        :param sigma_vert:
+        :type sigma_vert: float
+        :param R:
+        :type R: float
+        :return:
+        """
         size = 1000
         x = np.linspace(-size//2, size//2, size)
         y = np.linspace(-size//2, size//2, size)
@@ -229,7 +334,14 @@ class RATANClient(BaseClient):
         area_ratio = area_gaussian / area_rectangle
         return area_ratio
 
-    def antenna_efficiency(self, freq, R):
+    def antenna_efficiency(self, freq: List[float], R: float)-> List[float]:
+        """
+        Calculates the antenna efficiency for each frequency.
+
+        :param freq:
+        :param R:
+        :return:
+        """
         areas = []
         for f in freq:
             lambda_value = (3 * 10 ** 8) / (f * 10 ** 9) * 1000
@@ -243,9 +355,25 @@ class RATANClient(BaseClient):
             areas.append(area_ratio)
         return areas
 
-    def calibrate_QSModel(self, x, scan_data, solar_r, frequency, flux_eficiency):
-        K_b = 1.38 * 10 ** (-23) # Константа Больцамана
-        c = 3 * 10 ** 8 # Скорость света в вакууме
+    def calibrate_QSModel(self, x: np.ndarray, scan_data:np.ndarray,
+                          solar_r: float, frequency: np.ndarray,
+                          flux_eficiency: np.ndarray)-> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Calibrates raw scan data with the quiet Sun model.
+        :param x: Array of x coordinates
+        :type: np.ndarray
+        :param scan_data: Scan data array.
+        :type: np.ndarray
+        :param solar_r:  Solar radius in arcseconds
+        :type: float
+        :param frequency: Array of frequencies.
+        :type: np.ndarray
+        :param flux_eficiency: Array of flux efficiencies for each frequency.
+        :type: np.ndarray
+        :return: calibrated scan: mask, Stocks component I, Stocks component V
+        """
+        K_b = 1.38 * 10 ** (-23) # Boltzmann constant
+        c = 3 * 10 ** 8 # Speed of light in vacuum
         freq_size = len(frequency)
         model_freq = self.convolution_template.columns[1:].values.astype(float)
 
@@ -289,30 +417,86 @@ class RATANClient(BaseClient):
             calibrated_L[freq_num, :] = real_L * res_L.x
         return mask, (calibrated_R + calibrated_L) / 2, (calibrated_R - calibrated_L) / 2
 
-    def heliocentric_transform(self, Lat, Long, SOLAR_R, SOLAR_B):
+    def heliocentric_transform(self, Lat: np.ndarray, Long: np.ndarray,
+                               SOLAR_R: float, SOLAR_B: float)-> Tuple[np.ndarray, np.ndarray]:
+        """
+        Transforms solar coordinates to a heliocentric system.
+        :param Lat:  Latitude array in degrees
+        :type: np.ndarray
+        :param Long: Longitude array in degrees
+        :type: np.ndarray
+        :param SOLAR_R:  Solar radius.
+        :type: float
+        :param SOLAR_B: Solar B angle
+        :type: float
+        :return: Heliocentric x and y coordinates.
+        :rtype: Tuple[np.ndarray, np.ndarray]
+
+        """
         return (
             SOLAR_R * np.cos(Lat * np.pi / 180) * np.sin(Long * np.pi / 180),
-            SOLAR_R * (np.sin(Lat * np.pi / 180) * np.cos(SOLAR_B * np.pi / 180) - np.cos(Lat * np.pi / 180) * np.cos(Long * np.pi / 180) * np.sin(SOLAR_B * np.pi / 180))
+            SOLAR_R * (np.sin(Lat * np.pi / 180) * np.cos(SOLAR_B * np.pi / 180)
+                       - np.cos(Lat * np.pi / 180) * np.cos(Long * np.pi / 180) * np.sin(SOLAR_B * np.pi / 180))
         )
 
-    def pozitional_rotation(self, Lat, Long, angle):
+    def pozitional_rotation(self, Lat: np.ndarray, Long: np.ndarray,
+                            angle: float) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Rotates positional data by a given angle.
+
+        :param Lat:  Latitude array in degrees
+        :type: np.ndarray
+        :param Long: Longitude array in degrees
+        :type: np.ndarray
+        :param angle:    Rotation angle in degrees.
+        :type: float
+        :return: Rotated X and Y coordinates
+        :rtype: Tuple[np.ndarray, np.ndarray]
+        """
         return (
             Lat * np.cos(angle * np.pi / 180) - Long * np.sin(angle * np.pi / 180),
             Lat * np.sin(angle * np.pi / 180) + Long * np.cos(angle * np.pi / 180)
         )
 
-    def differential_rotation(self, Lat):
+    def differential_rotation(self, Lat: np.ndarray) -> np.ndarray:
+        """
+        Calculates the differential rotation of the Sun based on latitude.
+        :param Lat:  Latitude array in degrees
+        :type: np.ndarray
+        :return:
+        """
         A = 14.713
         B = -2.396
         C = -1.787
         return A + B * np.sin(Lat * np.pi / 180) ** 2 + C * np.sin(Lat * np.pi / 180) ** 4
 
-    def pozitional_angle(self, AZIMUTH, SOL_DEC, SOLAR_P):
+    def pozitional_angle(self, AZIMUTH: float, SOL_DEC: float, SOLAR_P: float) -> float:
+        """
+         Calculates the positional angle of the sun based on azimuth, solar declination, and solar P-angle.
+        :param AZIMUTH: Azimuth angle.
+        :type: float
+        :param SOL_DEC:  Solar declination angle.
+        :type: float
+        :param SOLAR_P: Solar P-angle
+        :type: float
+        :return: Positional angle of the sun
+        :rtype: float
+        """
         q = -np.arcsin(np.tan(AZIMUTH * np.pi / 180) * np.tan(SOL_DEC * np.pi / 180)) * 180 / np.pi
         p = SOLAR_P + 360.0 if np.abs(SOLAR_P) > 30 else SOLAR_P
         return (p + q)
 
-    def active_regions_search(self, srs, x, V, mask):
+    def active_regions_search(self, srs: SRSClient, x: np.ndarray, V: np.ndarray, mask: np.ndarray):
+        """
+         Searches for active regions in the solar spectrum data using wavelet denoising and peak detection
+         and matching with NOAA active location.
+        :param srs: SRSCLient with informations about the NOAA active regions.
+        :param x: x coordinates
+        :param V: Stocks vector V
+        :param mask: masked interval
+        :return: Table with active regions: V value and coordinate for center of AR
+        :rtype: Table
+        """
         x = x[mask]
         V = np.sum(V, axis=0)[mask]
 
@@ -338,7 +522,18 @@ class RATANClient(BaseClient):
         closest_data.add_column(Column(name='Masked Index', data=extremums, dtype=('i4')), index=4)
         return closest_data
 
-    def make_multigauss_fit(self, x, y, peak_info):
+    def make_multigauss_fit(self, x: np.ndarray, y: np.ndarray,
+                            peak_info: Table) -> Tuple[float, float, float]:
+        """
+        Fits multiple Gaussian functions to detected peaks.
+        :param x: x values of the data.
+        :type: np.ndarray
+        :param y: y values of the data.
+        :type: np.ndarray
+        :param peak_info:  astropy Table with information about peaks.
+        :return: width, value and coordinate for center of AR.
+        :rtype: Tuple[float, float, float]
+        """
         min_lat = np.min(peak_info['Latitude'])
         max_lat = np.max(peak_info['Latitude'])
         indexes = peak_info['Data Index']
@@ -352,6 +547,16 @@ class RATANClient(BaseClient):
         return np.array(params), y_min, x_masked
 
     def gauss_analysis(self, x, scan_data, ar_info):
+        """
+        Analyzes active regions by fitting Gaussian functions and calculating associated metrics.
+        :param x: x coordinates of the data (arcsec).
+        :param scan_data:  scan with radio data
+        :type: np.ndarray
+        :param ar_info: Table with information about active regions.
+        :type: Table
+        :return: Table with ARs parameters from Radio data at each frequency
+        :rtype: Table
+        """
         ar_number = np.unique(ar_info['Number'])
         for noaa_ar in ar_number:
             region_info = ar_info[ar_info['Number'] == noaa_ar]
@@ -373,8 +578,15 @@ class RATANClient(BaseClient):
                     ar_info['Total Flux'][local_index][index] = {'freq': freq, 'flux': total_flux}
         return ar_info
 
-    def acquire_data(self, timerange):
-        scrapper = Scrapper(self.base_url, regex_pattern=self.regex_pattern, condition=self.condition, filter=self.filter)
+    def acquire_data(self, timerange: TimeRange) -> List[str]:
+        """
+        Get all available urls for predefined TimeRange
+        :param timerange: timerange for scan searching
+        :return: url list:
+        :rtype:
+        """
+        scrapper = Scrapper(self.base_url, regex_pattern=self.regex_pattern,
+                            condition=self.condition, filter=self.filter)
         return scrapper.form_fileslist(timerange)
 
     def get_scans(self, timerange):
