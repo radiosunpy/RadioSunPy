@@ -288,7 +288,7 @@ class RATANClient(BaseClient):
                           save_path: Optional[str] = None,
                           save_with_original: bool = False,
                           save_raw: bool = False
-                          ) -> fits.HDUList:
+                          ) -> Tuple[fits.HDUList, fits.HDUList]:
         """
         Process FITS data from a given URL or file_path from the disk, optionally saving the original and processed data to a file,
         and return the processed data as a FITS HDUList object.
@@ -303,8 +303,8 @@ class RATANClient(BaseClient):
         :type save_with_original: bool
         :param save_raw: Whether to save raw FITS data or not.
          :type save_raw: bool
-        :returns: The processed FITS data object.
-        :rtype: fits.HDUList
+        :returns: The raw and processed FITS data object.
+        :rtype: Tuple[fits.HDUList, fits.HDUList]
 
         :Example:
 
@@ -321,13 +321,14 @@ class RATANClient(BaseClient):
         if bad_freq is None:
             bad_freq = [15.0938, 15.2812, 15.4688, 15.6562, 15.8438, 16.0312, 16.2188, 16.4062]
         file_name = str(path_to_file).split('/')[-1]
-        file_name_processed = file_name.split('.fits')[0]+'_processed.fits'
+        file_name_processed = file_name.split('.fits')[0] + '_processed.fits'
         hdul = fits.open(path_to_file)
+        hdul.verify('fix')
         data = hdul[0].data
 
         CDELT1 = hdul[0].header['CDELT1']
         CRPIX = hdul[0].header['CRPIX1']
-        SOLAR_R = hdul[0].header['SOLAR_R'] * 1.01175
+        SOLAR_R = hdul[0].header['SOLAR_R']
         SOLAR_B = hdul[0].header['SOLAR_B']
         FREQ = hdul[1].data['FREQ']
         OBS_DATE = hdul[0].header['DATE-OBS']
@@ -357,10 +358,11 @@ class RATANClient(BaseClient):
         I_hdu = fits.ImageHDU(data=I.astype('float32'), name='I')
         V_hdu = fits.ImageHDU(data=V.astype('float32'), name='V')
         freq_hdu = fits.ImageHDU(data=FREQ.astype('float32'), name='FREQ')
+        mask_hdu = fits.ImageHDU(data=mask.astype('int8'), name='mask')
 
         header = primary_hdu.header
         header['CDELT1'] = CDELT1
-        header['CRPIX'] = CRPIX
+        header['CRPIX1'] = CRPIX
         header['SOLAR_R'] = SOLAR_R
         header['SOLAR_B'] = SOLAR_B
         header['DATE-OBS'] = OBS_DATE
@@ -370,17 +372,113 @@ class RATANClient(BaseClient):
         header['SOLAR_P'] = SOLAR_P
         header['ANGLE'] = angle
 
-        hdulist = fits.HDUList([primary_hdu, I_hdu, V_hdu, freq_hdu, hdul[1]])
+        hdulist = fits.HDUList([primary_hdu, I_hdu, V_hdu, freq_hdu, mask_hdu, hdul[1]])
+        hdulist.verify('fix')
 
         if save_path:
-            hdulist.verify('fix')
-            hdulist.writeto(Path(save_path)/file_name_processed, overwrite=True)
+            hdulist.writeto(Path(save_path) / file_name_processed, overwrite=True)
         if save_raw:
-            hdul.verify('fix')
-            hdul.writeto(Path(save_path)/file_name, overwrite=True)
-
+            hdul.writeto(Path(save_path) / file_name, overwrite=True)
 
         return hdul, hdulist
+
+    def process_fits_with_period(self, timerange: TimeRange,
+                                 **kwargs) -> Tuple[List[fits.HDUList], List[fits.HDUList]]:
+        """
+        Process fits files with a period by urls taken from http://spbf.sao.ru/
+        :param timerange: Period of time for which scans will be downloaded and processed
+        :param kwargs: keyword arguments valid for process _fits_data
+        :return: Tuple[List[fits.HDUList], List[fits.HDUList]]
+        """
+        url_list = self.acquire_data(timerange)
+        raw_hdul = []
+        processed_hdul = []
+        for url in url_list:
+            hdul, hdulist = self.process_fits_data(url, **kwargs)
+            raw_hdul.append(hdulist)
+            processed_hdul.append(hdulist)
+        return raw_hdul, processed_hdul
+
+    def get_ar_info(self,
+                    pr_data: Union[str, fits.hdu.hdulist.HDUList],
+                    bad_freq: Optional[list[float]] = None) -> Table:
+        """
+        Compute combined from local sources aggregated info about ARs
+        :param pr_data:  string with path to file or direct url to source fits or fits file
+        :type pr_data: str or fits.hdu.hdulist.HDUList
+        :param bad_freq:  list of bd frequencies excluded from computation
+        :type bad_freq: list of float
+        :return: astropy table with local sources info
+        :rtype: Table
+        """
+        pass
+    def get_local_sources_info_from_processed(self,
+                                   pr_data: Union[str, fits.hdu.hdulist.HDUList],
+                                   bad_freq: Optional[list[float]] = None) -> Table:
+        """
+        Compute local sources info from a processed FITS HDUList and NOAA active regions coordnate info
+        :param pr_data:  string with path to file or direct url to source fits or fits file
+        :type pr_data: str or fits.hdu.hdulist.HDUList
+        :param bad_freq:  list of bd frequencies excluded from computation
+        :type bad_freq: list of float
+        :return: astropy table with local sources info
+        :rtype: Table
+        """
+        if isinstance(pr_data, str):
+            _, processed = self.process_fits_data(pr_data,
+                                                  save_path=None,
+                                                  save_with_original=False)
+        elif isinstance(pr_data, fits.hdu.hdulist.HDUList):
+            processed = pr_data
+        else:
+            NotImplementedError
+
+        if bad_freq is None:
+            bad_freq = [15.0938, 15.2812, 15.4688, 15.6562, 15.8438, 16.0312, 16.2188, 16.4062]
+
+        srs_table = self.form_srstable_with_time_shift(processed)
+
+        CDELT1 = processed[0].header['CDELT1']
+        CRPIX = processed[0].header['CRPIX1']
+        AZIMUTH = processed[0].header['AZIMUTH']
+        FREQ = processed[3].data
+        bad_freq = np.isin(FREQ, bad_freq)
+        I = processed[1].data
+        V = processed[2].data
+        mask = processed[4].data.astype(bool)
+        I, V, FREQ = I[~bad_freq], V[~bad_freq], FREQ[~bad_freq]
+        x = np.linspace(
+            - CRPIX * CDELT1,
+            (V.shape[1] - CRPIX) * CDELT1,
+            num=V.shape[1]
+        )
+
+        source_info = self.active_regions_search(srs_table, x, V, mask)
+
+        ar_amount = len(source_info)
+        source_info.add_column(Column(name='Azimuth', data=[AZIMUTH] * ar_amount, dtype=('i2')), index=1)
+        source_info.add_column(
+            Column(name='Amplitude', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
+        source_info.add_column(
+            Column(name='Mean', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
+        source_info.add_column(
+            Column(name='Sigma', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
+        source_info.add_column(
+            Column(name='FWHM', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
+        source_info.add_column(
+            Column(name='Flux', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
+        source_info.add_column(
+            Column(name='Total Flux', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)],
+                   dtype=object))
+        source_info.add_column(
+            Column(name='Range', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
+
+        ratan_data = list(zip(FREQ, I, V))
+        source_info= self.gauss_analysis(x, ratan_data, source_info)
+
+        return source_info
+
+
 
     def condition(self, year, month, data_match):
         """
@@ -588,11 +686,58 @@ class RATANClient(BaseClient):
         p = SOLAR_P + 360.0 if np.abs(SOLAR_P) > 30 else SOLAR_P
         return (p + q)
 
-    def active_regions_search(self, srs: SRSClient, x: np.ndarray, V: np.ndarray, mask: np.ndarray):
+    def form_srstable_with_time_shift(self, processed_file: fits.HDUList) -> Table:
+        """ Create table with AR info with SRSClient
+        with correct NOAA coordinates for RATAN time difference
+
+        :param processed_file:  calibrate RATAN fits
+        :type: fits.HDUList
+        :return: modified NOAA table with ARs
+        :rtype: Table
+        """
+
+        SOLAR_R = processed_file[0].header['SOLAR_R'] * 1.01175
+        SOLAR_B = processed_file[0].header['SOLAR_B']
+        OBS_DATE = processed_file[0].header['DATE-OBS']
+        OBS_TIME = processed_file[0].header['TIME-OBS']
+
+        AZIMUTH = processed_file[0].header['AZIMUTH']
+        SOL_DEC = processed_file[0].header['SOL_DEC']
+        SOLAR_P = processed_file[0].header['SOLAR_P']
+        angle = self.pozitional_angle(AZIMUTH, SOL_DEC, SOLAR_P)
+        ratan_datetime = datetime.strptime(OBS_DATE + ' ' + OBS_TIME, '%Y/%m/%d %H:%M:%S.%f')
+        noaa_datetime = datetime.strptime(OBS_DATE, '%Y/%m/%d')
+        diff_hours = int((ratan_datetime - noaa_datetime).total_seconds() / 3600)
+
+        srs = SRSClient()
+        srs_table = srs.get_data(TimeRange(OBS_DATE, OBS_DATE))
+        srs_table = srs_table[srs_table['ID'] == 'I']
+        len_tbl = len(srs_table)
+        srs_table.add_column(Column(name='RatanTime', data=[ratan_datetime] * len_tbl, dtype='M'))
+        srs_table['Longitude'] = (
+                srs_table['Longitude'] + self.differential_rotation(srs_table['Latitude']) * diff_hours / 24
+        ).astype(int)
+
+        srs_table['Latitude'], srs_table['Longitude'] = self.heliocentric_transform(
+            srs_table['Latitude'],
+            srs_table['Longitude'],
+            SOLAR_R,
+            SOLAR_B
+        )
+
+        srs_table['Latitude'], srs_table['Longitude'] = self.pozitional_rotation(
+            srs_table['Latitude'],
+            srs_table['Longitude'],
+            angle
+        )
+
+        return srs_table
+
+    def active_regions_search(self, srs: Table, x: np.ndarray, V: np.ndarray, mask: np.ndarray):
         """
          Searches for active regions in the solar spectrum data using wavelet denoising and peak detection
          and matching with NOAA active location.
-        :param srs: SRSCLient with informations about the NOAA active regions.
+        :param srs: table from SRSCLient with informations about the NOAA active regions.
         :param x: x coordinates
         :param V: Stocks vector V
         :param mask: masked interval
@@ -835,3 +980,6 @@ class RATANClient(BaseClient):
     def get_data(self, timerange):
         file_urls = self.acquire_data(timerange)
         return self.form_data(file_urls)
+
+
+
