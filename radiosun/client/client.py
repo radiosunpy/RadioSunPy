@@ -1,11 +1,12 @@
 from abc import ABCMeta, abstractmethod
+import pathlib
 from typing import List, Tuple, Any, Optional
 from pathlib import Path
 from urllib.request import urlopen
 from collections import OrderedDict
 from datetime import datetime
 import astropy.io.ascii
-from astropy.table import Column, MaskedColumn, vstack, Table
+from astropy.table import Column, MaskedColumn, vstack, Table, join
 from astropy.io import fits
 import pandas as pd
 from scipy.interpolate import interp1d
@@ -21,6 +22,7 @@ from functools import lru_cache
 import re
 from radiosun.scrapper import Scrapper
 from radiosun.time import TimeRange
+from radiosun.utils.utils import gaussian_mixture
 from radiosun.utils import *
 
 
@@ -412,9 +414,10 @@ class RATANClient(BaseClient):
         :rtype: Table
         """
         pass
+
     def get_local_sources_info_from_processed(self,
-                                   pr_data: Union[str, fits.hdu.hdulist.HDUList],
-                                   bad_freq: Optional[list[float]] = None) -> Table:
+                                              pr_data: Union[str, fits.hdu.hdulist.HDUList],
+                                              bad_freq: Optional[list[float]] = None) -> Table:
         """
         Compute local sources info from a processed FITS HDUList and NOAA active regions coordnate info
         :param pr_data:  string with path to file or direct url to source fits or fits file
@@ -474,9 +477,88 @@ class RATANClient(BaseClient):
             Column(name='Range', data=[[{} for _ in range(len(FREQ))] for _ in range(ar_amount)], dtype=object))
 
         ratan_data = list(zip(FREQ, I, V))
-        source_info= self.gauss_analysis(x, ratan_data, source_info)
+        source_info = self.gauss_analysis(x, ratan_data, source_info)
 
         return source_info
+
+    def get_ar_info_from_processed(self, pr_data: Union[str, fits.hdu.hdulist.HDUList],
+                                   bad_freq: Optional[list[float]] = None) -> Table:
+        """
+        Compute ar parameters (total flux, maximum amplitude, width (in arcsec))  info from
+        a processed FITS HDUList and NOAA active regions coordnate info
+        :param pr_data:  string with path to file or direct url to source fits or fits file
+        :type pr_data: str or fits.hdu.hdulist.HDUList
+        :param bad_freq:  list of bd frequencies excluded from computation
+        :type bad_freq: list of float
+        :return: astropy table with local sources info
+        :rtype: Table
+        """
+
+        assert isinstance(pr_data, (str, pathlib.PosixPath, fits.hdu.hdulist.HDUList)),\
+            'Processed data should be link to file, path to fits data of fits data'
+        if isinstance(pr_data, (str, pathlib.PosixPath)):
+            _, processed = self.process_fits_data(pr_data,
+                                                  save_path=None,
+                                                  save_with_original=False)
+        else:
+            processed = pr_data
+
+
+        if bad_freq is None:
+            bad_freq = [15.0938, 15.2812, 15.4688, 15.6562, 15.8438, 16.0312, 16.2188, 16.4062]
+
+        srs_table = self.form_srstable_with_time_shift(processed)
+
+        CDELT1 = processed[0].header['CDELT1']
+        CRPIX = processed[0].header['CRPIX1']
+        AZIMUTH = processed[0].header['AZIMUTH']
+        FREQ = processed[3].data
+        bad_freq = np.isin(FREQ, bad_freq)
+        I = processed[1].data
+        V = processed[2].data
+        mask = processed[4].data.astype(bool)
+        I, V, FREQ = I[~bad_freq], V[~bad_freq], FREQ[~bad_freq]
+        x = np.linspace(
+            - CRPIX * CDELT1,
+            (V.shape[1] - CRPIX) * CDELT1,
+            num=V.shape[1]
+        )
+        primary_hdu = fits.PrimaryHDU(FREQ)
+        primary_hdu.header = processed[0].header
+        source_info = self.active_regions_search(srs_table, x, V, mask)
+
+        ar_numbers = np.unique(source_info['Number'])
+        total_flux_list = []
+        max_amplitude_list = []
+        max_x_list = []
+        min_x_list = []
+
+        for noaa_ar in ar_numbers:
+            region_info = source_info[source_info['Number'] == noaa_ar]
+            scan_data = list(zip(FREQ, I, V))
+            total_flux = np.zeros_like(FREQ)
+            max_amplitude = np.zeros_like(FREQ)
+            max_x = np.zeros_like(FREQ)
+            min_x = np.zeros_like(FREQ)
+            for index, elem in enumerate(scan_data):
+                freq, I_data, V_data = elem
+                gauss_params, y_min, x_range = self.make_multigauss_fit(x, I_data, region_info)
+                gauss_params = gauss_params.reshape(-1, 3)
+                gauss_params[:, 0] += y_min
+                total_flux[index] = np.sum(np.sqrt(2 * np.pi) * gauss_params[:, 0] * gauss_params[:, 2])
+                max_amplitude[index] = np.max(gauss_params[:, 0])
+                max_x[index] = np.max(x_range)
+                min_x[index] = np.min(x_range)
+
+            total_flux_list.append(total_flux)
+            max_amplitude_list.append(max_amplitude)
+            max_x_list.append(max_x)
+            min_x_list.append(min_x)
+        ar_info_part1 = srs_table[['RatanTime','Number','Mag Type', 'Number of Sunspots','Area', 'Z']]
+        ar_info_part2 = Table([ar_numbers, total_flux_list, max_amplitude_list, max_x_list, min_x_list],
+                              names=('Number', 'TotalFlux', 'MaxAmplitude', 'MaxLat', 'MinLat'))
+        ar_info = join(ar_info_part1, ar_info_part2, keys='Number')
+        return ar_info,  primary_hdu
 
 
 
@@ -706,6 +788,7 @@ class RATANClient(BaseClient):
         SOLAR_P = processed_file[0].header['SOLAR_P']
         angle = self.pozitional_angle(AZIMUTH, SOL_DEC, SOLAR_P)
         ratan_datetime = datetime.strptime(OBS_DATE + ' ' + OBS_TIME, '%Y/%m/%d %H:%M:%S.%f')
+        #ratan_datetime_str = ratan_datetime.strftime('%Y/%m/%d %H:%M')
         noaa_datetime = datetime.strptime(OBS_DATE, '%Y/%m/%d')
         diff_hours = int((ratan_datetime - noaa_datetime).total_seconds() / 3600)
 
@@ -830,6 +913,7 @@ class RATANClient(BaseClient):
         """
         Get all available urls for predefined TimeRange
         :param timerange: timerange for scan searching
+        :type: TimeRange
         :return: url list:
         :rtype:
         """
@@ -980,6 +1064,3 @@ class RATANClient(BaseClient):
     def get_data(self, timerange):
         file_urls = self.acquire_data(timerange)
         return self.form_data(file_urls)
-
-
-

@@ -48,7 +48,7 @@ class TestSRSClient:
         assert len(file_urls) == 1
         assert isinstance(file_urls[0], str)
 
-    def test_extract_lines(self, tr,srs):
+    def test_extract_lines(self, tr, srs):
 
         file_url = srs.acquire_data(tr)[0]
         with urlopen(file_url) as response:
@@ -162,6 +162,11 @@ class TestRATANClient:
 
         ar_info = ratan_client.active_regions_search(srs_table, x, V, mask)
 
+        assert isinstance(ar_info, Table)
+
+    def test_get_ar_info_from_processed(self,ratan_client,
+                                        raw_fits_data_path):
+        ar_info, primary_hdu = ratan_client.get_ar_info_from_processed(str(raw_fits_data_path))
         assert isinstance(ar_info, Table)
 
 
