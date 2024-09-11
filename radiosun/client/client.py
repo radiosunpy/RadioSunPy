@@ -482,7 +482,7 @@ class RATANClient(BaseClient):
         return source_info
 
     def get_ar_info_from_processed(self, pr_data: Union[str, fits.hdu.hdulist.HDUList],
-                                   bad_freq: Optional[list[float]] = None) -> Table:
+                                   bad_freq: Optional[list[float]] = None) -> fits.HDUList:
         """
         Compute ar parameters (total flux, maximum amplitude, width (in arcsec))  info from
         a processed FITS HDUList and NOAA active regions coordnate info
@@ -558,7 +558,7 @@ class RATANClient(BaseClient):
         ar_info_part2 = Table([ar_numbers, total_flux_list, max_amplitude_list, max_x_list, min_x_list],
                               names=('Number', 'TotalFlux', 'MaxAmplitude', 'MaxLat', 'MinLat'))
         ar_info = join(ar_info_part1, ar_info_part2, keys='Number')
-        return ar_info,  primary_hdu
+        return fits.HDUList([primary_hdu, fits.BinTableHDU(ar_info)])
 
 
 
@@ -788,7 +788,7 @@ class RATANClient(BaseClient):
         SOLAR_P = processed_file[0].header['SOLAR_P']
         angle = self.pozitional_angle(AZIMUTH, SOL_DEC, SOLAR_P)
         ratan_datetime = datetime.strptime(OBS_DATE + ' ' + OBS_TIME, '%Y/%m/%d %H:%M:%S.%f')
-        #ratan_datetime_str = ratan_datetime.strftime('%Y/%m/%d %H:%M')
+        ratan_datetime_str = ratan_datetime.strftime('%Y/%m/%d %H:%M')
         noaa_datetime = datetime.strptime(OBS_DATE, '%Y/%m/%d')
         diff_hours = int((ratan_datetime - noaa_datetime).total_seconds() / 3600)
 
@@ -796,7 +796,7 @@ class RATANClient(BaseClient):
         srs_table = srs.get_data(TimeRange(OBS_DATE, OBS_DATE))
         srs_table = srs_table[srs_table['ID'] == 'I']
         len_tbl = len(srs_table)
-        srs_table.add_column(Column(name='RatanTime', data=[ratan_datetime] * len_tbl, dtype='M'))
+        srs_table.add_column(Column(name='RatanTime', data=[ratan_datetime_str] * len_tbl))
         srs_table['Longitude'] = (
                 srs_table['Longitude'] + self.differential_rotation(srs_table['Latitude']) * diff_hours / 24
         ).astype(int)
