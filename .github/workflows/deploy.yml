@@ -1,4 +1,6 @@
 name: Deploy documentation to GitHub Pages
+
+# Запускать при каждом пуше в ветку main
 on:
   push:
     branches:
@@ -24,10 +26,11 @@ jobs:
         
     - name: Build documentation
       run: sphinx-build -b html docs/ docs/_build/html
-
+    
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_branch: gh-pages  # Ваша основная ветка
-        publish_dir: docs/_build/html
+        publish_branch: gh-pages    # Ветка, которую вы используете для GitHub Pages
+        publish_dir: docs/_build/html  # Должна указывать на папку сборки HTML
+        destination_dir: '/'           # Указывает на корень ветки gh-pages
