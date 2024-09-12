@@ -1,4 +1,3 @@
-yaml
 name: Deploy documentation to GitHub Pages
 on:
   push:
