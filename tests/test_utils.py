@@ -1,6 +1,6 @@
 import numpy as np
 
-from radiosun.utils import (
+from radiosunpy.utils import (
     SunSolidAngle,
     gauss2d,
     gauss1d,

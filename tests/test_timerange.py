@@ -2,8 +2,8 @@ import pytest
 from datetime import timedelta
 from astropy.time import Time, TimeDelta
 import astropy.units as u
-from radiosun.time.time import parse_time
-from radiosun.time.timerange import TimeRange
+from radiosunpy.time import parse_time
+from radiosunpy.time import TimeRange
 
 
 @pytest.fixture
@@ -87,11 +87,11 @@ class TestTimeRange:
         windows = tr.moving_window(window_size, window_period)
 
         assert len(windows) == 3
-        assert windows[0].start == Time("2023-01-01 00:00:00")
-        assert windows[0].end == Time("2023-01-01 12:00:00")
-        assert windows[1].start == Time("2023-01-01 06:00:00")
+        assert windows[0].start.to_value('iso') == "2023-01-01 00:00:00.000"
+        assert windows[0].end.to_value('iso') == "2023-01-01 12:00:00.000"
+        assert windows[1].start.to_value('iso') == "2023-01-01 06:00:00.000"
         #TODO time parsing problem
-        assert windows[1].end == Time("2023-01-01 18:00:00")
+        assert windows[1].end.to_value('iso') == "2023-01-01 18:00:00.000"
 
     def test_timerange_equal_split(self, time_tuple_str):
         tr = TimeRange(time_tuple_str[0], time_tuple_str[1])
@@ -107,19 +107,19 @@ class TestTimeRange:
         tr = TimeRange(time_tuple_str)
         tr.shift_forward(TimeDelta(1 * u.day))
         #todo same problem with iso and isot
-        assert tr.start == Time("2023-01-02 00:00:00")
-        assert tr.end == Time("2023-01-03 00:00:00")
+        assert tr.start.to_value('iso') == "2023-01-02 00:00:00.000"
+        assert tr.end.to_value('iso') == "2023-01-03 00:00:00.000"
 
     def test_timerange_shift_backward(self):
         tr = TimeRange("2023-01-02 00:00:00", "2023-01-03 00:00:00")
         tr.shift_backward(TimeDelta(1 * u.day))
         # todo same problem with iso and isot
-        assert tr.start == Time("2023-01-01 00:00:00")
-        assert tr.end == Time("2023-01-02 00:00:00")
+        assert tr.start.to_value('iso') == "2023-01-01 00:00:00.000"
+        assert tr.end.to_value('iso') == "2023-01-02 00:00:00.000"
 
     def test_timerange_extend_range(self, time_tuple_str):
         tr = TimeRange(time_tuple_str)
         tr.extend_range(TimeDelta(-1 * u.day), TimeDelta(1 * u.day))
         # todo same problem with iso and isot
-        assert tr.start == Time("2022-12-31 00:00:00")
-        assert tr.end == Time("2023-01-03 00:00:00")
+        assert tr.start.to_value('iso') == "2022-12-31 00:00:00.000"
+        assert tr.end.to_value('iso') == "2023-01-03 00:00:00.000"

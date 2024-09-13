@@ -1,3 +1,2 @@
 # ``RadioSun``
-``RadioSun`` это модуль для языка программирования Python, который предоставляет инструменты для получения, загрузки и обработки радиоастрономических данных радиотелескопа РАТАН-600
-
+``RadioSun`` - Python packahge that provides tools for receiving, downloading and processing radioastronomy data from the RATAN-600 radiotelescope

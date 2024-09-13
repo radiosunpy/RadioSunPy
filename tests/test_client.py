@@ -2,8 +2,8 @@ import pytest
 import numpy as np
 from datetime import timedelta
 from pathlib import Path
-from radiosun.time.timerange import TimeRange
-from radiosun.client.client import SRSClient, RATANClient
+from radiosunpy.time import TimeRange
+from radiosunpy.client import SRSClient, RATANClient
 from urllib.request import urlopen
 from astropy.table import  Table
 from astropy.io import fits
@@ -84,7 +84,7 @@ class TestRATANClient:
     def test_get_scans(self, tr, ratan_client):
         tables = ratan_client.get_scans(tr)
         assert len(tables) == 1
-        assert isinstance(tables[0], Table)
+        assert isinstance(tables, Table)
 
     def test_process_fits_data(self, ratan_client, r_fits_url):
 
@@ -125,7 +125,8 @@ class TestRATANClient:
                                                                   save_path=save_path,
                                                                   save_with_original=False,
                                                                   save_raw=True)
-        assert isinstance(list_phdul, fits.hdu.hdulist.HDUList)
+        assert isinstance(list_phdul, list)
+        assert isinstance(list_phdul[0], fits.HDUList)
 
     def test_form_srstable_with_time_shift(self, ratan_client, r_fits_url):
         #first url from '2017-09-03'

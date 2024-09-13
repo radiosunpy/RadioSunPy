@@ -1,6 +1,6 @@
-from .context import radiosun
-from radiosun.time import check_equal_time, get_time_format
-from radiosun.time import TimeFormats
+from .context import radiosunpy
+from radiosunpy.time import check_equal_time, get_time_format
+from radiosunpy.time import TimeFormats
 import astropy.units as u
 import pytest
 from astropy.time import Time
@@ -36,6 +36,7 @@ def times_identical_diff_format():
     t2 = Time('2024-08-06T00:00:00')
     #t2 = Time('2024.08.06_00:00:00_TAI')
     return t1, t2
+
 @pytest.fixture
 def common_time_formats():
     formats = TimeFormats().common_formats
