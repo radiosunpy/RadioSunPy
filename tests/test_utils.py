@@ -1,6 +1,7 @@
 import numpy as np
-
+from pathlib import Path
 from radiosunpy.utils import (
+    get_project_root,
     SunSolidAngle,
     gauss2d,
     gauss1d,
@@ -14,6 +15,9 @@ from radiosunpy.utils import (
     wavelet_denoise,
 )
 
+def test_get_project_root():
+    project_root = get_project_root()
+    assert project_root.parts[-1] == 'RadioSun'
 
 def test_sun_solid_angle():
     angle = SunSolidAngle(960)

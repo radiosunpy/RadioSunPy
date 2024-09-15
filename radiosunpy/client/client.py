@@ -25,6 +25,7 @@ from radiosunpy.utils import *
 
 __all__ = ['RATANClient', 'SRSClient']
 
+
 class BaseClient(metaclass=ABCMeta):
     @abstractmethod
     def acquire_data(self):
@@ -311,12 +312,10 @@ class RATANClient(BaseClient):
 
         .. code-block:: python
 
-            >>> # Assuming you have a FITS file at 'test.fits'
-            >>> hdul = process_fits_data('http://spbf.sao.ru/data/ratan/2017/09/20170903_121257_sun+0_out.fits')
-            >>> isinstance(hdul, fits.HDUList)
-            >>> # Assuming you have a FITS file at 'test.fits'
-            >>> hdul = process_fits_data('http://spbf.sao.ru/data/ratan/2017/09/20170903_121257_sun+0_out.fits')
-            >>> isinstance(hdul, fits.HDUList)
+
+            >>> ratan_client = RATANClient()
+            >>> raw, processed = ratan_client.process_fits_data('http://spbf.sao.ru/data/ratan/2017/09/20170903_121257_sun+0_out.fits')
+            >>> isinstance(processed, fits.HDUList)
             True
         """
         if bad_freq is None:
@@ -386,10 +385,23 @@ class RATANClient(BaseClient):
     def process_fits_with_period(self, timerange: TimeRange,
                                  **kwargs) -> Tuple[List[fits.HDUList], List[fits.HDUList]]:
         """
-        Process fits files with a period by urls taken from http://spbf.sao.ru/
+        Process fits files with a period by urls taken from http://spbf.sao.ru/ and return list of raw
+        fits files and processed fits, all kwargs from process_fits_data are available,
+         such as option for saving processed fits and raw fits to directory.
+
         :param timerange: Period of time for which scans will be downloaded and processed
         :param kwargs: keyword arguments valid for process _fits_data
         :return: Tuple[List[fits.HDUList], List[fits.HDUList]]
+
+         :Example:
+
+        .. code-block:: python
+        >>> time_range = TimeRange("2017-09-03", "2017-09-04")
+        >>> ratan_client = RATANClient()
+        >>> _, list_phdul = ratan_client.process_fits_with_period(time_range)
+        >>> isinstance(list_phdul, list)
+        True
+
         """
         url_list = self.acquire_data(timerange)
         raw_hdul = []
@@ -399,20 +411,6 @@ class RATANClient(BaseClient):
             raw_hdul.append(hdul)
             processed_hdul.append(hdulist)
         return raw_hdul, processed_hdul
-
-    def get_ar_info(self,
-                    pr_data: Union[str, fits.hdu.hdulist.HDUList],
-                    bad_freq: Optional[list[float]] = None) -> Table:
-        """
-        Compute combined from local sources aggregated info about ARs
-        :param pr_data:  string with path to file or direct url to source fits or fits file
-        :type pr_data: str or fits.hdu.hdulist.HDUList
-        :param bad_freq:  list of bd frequencies excluded from computation
-        :type bad_freq: list of float
-        :return: astropy table with local sources info
-        :rtype: Table
-        """
-        pass
 
     def get_local_sources_info_from_processed(self,
                                               pr_data: Union[str, fits.hdu.hdulist.HDUList],
@@ -491,9 +489,18 @@ class RATANClient(BaseClient):
         :type bad_freq: list of float
         :return: astropy table with local sources info
         :rtype: Table
+
+        >>> raw_fits_data_path = get_project_root() / 'data' / '20170903_121257_sun+0_out.fits'
+        >>> ratan_client = RATANClient()
+        >>> hdul = ratan_client.get_ar_info_from_processed(str(raw_fits_data_path))
+        >>> assert hdul[1].data[0]['Number'] == 2673
+        >>> assert hdul[1].data[0]['TotalFlux'].shape == (84,)
+        >>> assert hdul[1].data[0]['MaxAmplitude'].shape == (84,)
+        >>> assert hdul[1].data[0]['MaxLat'].shape == (84,)
+        >>> assert hdul[1].data[0]['MinLat'].shape == (84,)
         """
 
-        assert isinstance(pr_data, (str, pathlib.PosixPath, fits.hdu.hdulist.HDUList)),\
+        assert isinstance(pr_data, (str, pathlib.PosixPath, fits.hdu.hdulist.HDUList)), \
             'Processed data should be link to file, path to fits data of fits data'
         if isinstance(pr_data, (str, pathlib.PosixPath)):
             _, processed = self.process_fits_data(pr_data,
@@ -501,7 +508,6 @@ class RATANClient(BaseClient):
                                                   save_with_original=False)
         else:
             processed = pr_data
-
 
         if bad_freq is None:
             bad_freq = [15.0938, 15.2812, 15.4688, 15.6562, 15.8438, 16.0312, 16.2188, 16.4062]
@@ -553,13 +559,11 @@ class RATANClient(BaseClient):
             max_amplitude_list.append(max_amplitude)
             max_x_list.append(max_x)
             min_x_list.append(min_x)
-        ar_info_part1 = srs_table[['RatanTime','Number','Mag Type', 'Number of Sunspots','Area', 'Z']]
+        ar_info_part1 = srs_table[['RatanTime', 'Number', 'Mag Type', 'Number of Sunspots', 'Area', 'Z']]
         ar_info_part2 = Table([ar_numbers, total_flux_list, max_amplitude_list, max_x_list, min_x_list],
                               names=('Number', 'TotalFlux', 'MaxAmplitude', 'MaxLat', 'MinLat'))
         ar_info = join(ar_info_part1, ar_info_part2, keys='Number')
         return fits.HDUList([primary_hdu, fits.BinTableHDU(ar_info)])
-
-
 
     def condition(self, year, month, data_match):
         """

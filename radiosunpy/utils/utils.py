@@ -6,6 +6,11 @@ from scipy import ndimage
 from numpy import signedinteger
 
 
+from pathlib import Path
+
+def get_project_root() -> Path:
+    return Path(__file__).parent.parent.parent
+
 def SunSolidAngle(R: float) -> float:
     """
      Calculate the solid angle subtended by the Sun as seen from Earth.

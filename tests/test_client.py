@@ -4,6 +4,7 @@ from datetime import timedelta
 from pathlib import Path
 from radiosunpy.time import TimeRange
 from radiosunpy.client import SRSClient, RATANClient
+from radiosunpy.utils import get_project_root
 from urllib.request import urlopen
 from astropy.table import  Table
 from astropy.io import fits
@@ -38,7 +39,7 @@ def r_fits_url():
 
 @pytest.fixture
 def raw_fits_data_path():
-    return Path(__file__).absolute().parents[1] / 'data' / '20170903_121257_sun+0_out.fits'
+    return get_project_root() / 'data' / '20170903_121257_sun+0_out.fits'
 
 
 class TestSRSClient:
@@ -119,7 +120,7 @@ class TestRATANClient:
         assert isinstance(processed, fits.hdu.hdulist.HDUList)
 
     def test_process_fits_with_period(self, tr, ratan_client):
-        new_tr = TimeRange(tr.start, tr.start + timedelta(days=2))
+        new_tr = TimeRange("2017-09-03", "2017-09-04")
         save_path = Path(__file__).absolute().parents[1]/'data'
         _, list_phdul = ratan_client.process_fits_with_period(new_tr,
                                                                   save_path=save_path,
@@ -168,6 +169,12 @@ class TestRATANClient:
     def test_get_ar_info_from_processed(self,ratan_client,
                                         raw_fits_data_path):
         hdul = ratan_client.get_ar_info_from_processed(str(raw_fits_data_path))
+        assert hdul[1].data[0]['Number'] == 2673
+        assert hdul[1].data[0]['TotalFlux'].shape == (84,)
+        assert hdul[1].data[0]['MaxAmplitude'].shape == (84,)
+        assert hdul[1].data[0]['MaxLat'].shape == (84,)
+        assert hdul[1].data[0]['MinLat'].shape == (84,)
+
         assert isinstance(hdul, fits.HDUList)
 
 
