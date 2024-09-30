@@ -278,5 +278,5 @@ class Scrapper:
         if urlsplit(self.baseurl).scheme == 'ftp':
             return self.ftpfiles(timerange)
         # RATAN, for example
-        if urlsplit(self.baseurl).scheme == 'http':
+        if urlsplit(self.baseurl).scheme in ['http', 'https']:
             return self.httpfiles(timerange)
