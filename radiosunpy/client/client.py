@@ -23,7 +23,7 @@ from radiosunpy.scrapper import Scrapper
 from radiosunpy.time import TimeRange
 from radiosunpy.utils import *
 
-__all__ = ['RATANClient', 'SRSClient']
+__all__ = ['RATANClient', 'SRSClient', 'BaseClient']
 
 
 class BaseClient(metaclass=ABCMeta):

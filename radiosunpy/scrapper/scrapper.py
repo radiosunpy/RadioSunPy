@@ -262,10 +262,11 @@ class Scrapper:
 
         :Example: usage example based on RATAN (HTTP server)
 
-        >>> if int(year) < 2010 or (int(year) == 2010 and int(month) < 5):
-        >>>     return f'{year[:2]}{date_match[:-4]}-{date_match[-4:-2]}-{date_match[-2:]}'
-        >>> else:
-        >>>    f'{date_match[:-4]}-{date_match[-4:-2]}-{date_match[-2:]}'
+        >>> def build_date(year, month, date_match):
+        >>>     if int(year) < 2010 or (int(year) == 2010 and int(month) < 5):
+        >>>         return f'{year[:2]}{date_match[:-4]}-{date_match[-4:-2]}-{date_match[-2:]}'
+        >>>     else:
+        >>>         return f'{date_match[:-4]}-{date_match[-4:-2]}-{date_match[-2:]}'
         >>> base_url_RATAN = 'http://spbf.sao.ru/data/ratan/%Y/%m/%Y%m%d_%H%M%S_sun+0_out.fits'
         >>> regex_pattern_RATAN = '((\d{6,8})[^0-9].*[^0-9]0_out.fits)'
         >>> scraper = Scrapper(base_url_RATAN, regex_pattern=regex_pattern_RATAN, condition=build_date)
