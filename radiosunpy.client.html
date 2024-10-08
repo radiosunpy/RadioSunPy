@@ -7,7 +7,8 @@
 
     <title>radiosunpy.client package &#8212; RadioSunPy v1 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
-    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=c058f7c8" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
     <script src="_static/documentation_options.js?v=5cb08e4e"></script>
     <script src="_static/doctools.js?v=9a2dae69"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
@@ -225,6 +226,11 @@ and matching with NOAA active location.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="radiosunpy.client.client.RATANClient.compute_fluxes">
+<span class="sig-name descname"><span class="pre">compute_fluxes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ar_table</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'I'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/radiosunpy/client/client.html#RATANClient.compute_fluxes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiosunpy.client.client.RATANClient.compute_fluxes" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="radiosunpy.client.client.RATANClient.condition">
 <span class="sig-name descname"><span class="pre">condition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">year</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">month</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_match</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/radiosunpy/client/client.html#RATANClient.condition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiosunpy.client.client.RATANClient.condition" title="Link to this definition">¶</a></dt>
 <dd><p>Formats the data string based on the year and month. Used in Scrapper class
@@ -275,6 +281,11 @@ and matching with NOAA active location.</p>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="radiosunpy.client.client.RATANClient.find_ar_intervals_using_peaks">
+<span class="sig-name descname"><span class="pre">find_ar_intervals_using_peaks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ar_table</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/radiosunpy/client/client.html#RATANClient.find_ar_intervals_using_peaks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiosunpy.client.client.RATANClient.find_ar_intervals_using_peaks" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="radiosunpy.client.client.RATANClient.form_data">
 <span class="sig-name descname"><span class="pre">form_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_urls</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/radiosunpy/client/client.html#RATANClient.form_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiosunpy.client.client.RATANClient.form_data" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -312,6 +323,11 @@ with correct NOAA coordinates for RATAN time difference</p>
 :return: Table with ARs parameters from Radio data at each frequency
 :rtype: Table</p>
 </dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="radiosunpy.client.client.RATANClient.get_ar_info">
+<span class="sig-name descname"><span class="pre">get_ar_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pr_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">HDUList</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Table</span></span></span><a class="reference internal" href="_modules/radiosunpy/client/client.html#RATANClient.get_ar_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiosunpy.client.client.RATANClient.get_ar_info" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="radiosunpy.client.client.RATANClient.get_ar_info_from_processed">
@@ -627,7 +643,16 @@ fits files and processed fits, all kwargs from process_fits_data are available,<
 
 
 
-<h3>Navigation</h3>
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
@@ -650,16 +675,6 @@ fits files and processed fits, all kwargs from process_fits_data are available,<
   </ul></li>
 </ul>
 </div>
-<search id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</search>
-<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -676,8 +691,8 @@ fits files and processed fits, all kwargs from process_fits_data are available,<
       &#169;2024, Igor Lysov, Evgenii Kurochkin, Andrey Shendrik, Irina Knyazeva.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.4.7</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.0.2</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
       |
       <a href="_sources/radiosunpy.client.rst.txt"

@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Index &#8212; RadioSunPy v1 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
-    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=c058f7c8" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
     <script src="_static/documentation_options.js?v=5cb08e4e"></script>
     <script src="_static/doctools.js?v=9a2dae69"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
@@ -102,6 +103,8 @@
 </li>
       <li><a href="radiosunpy.time.html#radiosunpy.time.time.TimeFormats.common_formats">common_formats (radiosunpy.time.time.TimeFormats attribute)</a>
 </li>
+      <li><a href="radiosunpy.client.html#radiosunpy.client.client.RATANClient.compute_fluxes">compute_fluxes() (radiosunpy.client.client.RATANClient method)</a>
+</li>
       <li><a href="radiosunpy.client.html#radiosunpy.client.client.RATANClient.condition">condition() (radiosunpy.client.client.RATANClient method)</a>
 </li>
       <li><a href="radiosunpy.client.html#id1">convolution_template (radiosunpy.client.client.RATANClient attribute)</a>, <a href="radiosunpy.client.html#radiosunpy.client.client.RATANClient.convolution_template">[1]</a>
@@ -180,18 +183,20 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="radiosunpy.client.html#radiosunpy.client.client.RATANClient.filter">filter() (radiosunpy.client.client.RATANClient method)</a>
 </li>
+      <li><a href="radiosunpy.client.html#radiosunpy.client.client.RATANClient.find_ar_intervals_using_peaks">find_ar_intervals_using_peaks() (radiosunpy.client.client.RATANClient method)</a>
+</li>
       <li><a href="radiosunpy.utils.html#radiosunpy.utils.utils.flip_and_concat">flip_and_concat() (in module radiosunpy.utils.utils)</a>
 </li>
       <li><a href="radiosunpy.scrapper.html#radiosunpy.scrapper.scrapper.Scrapper.floor_datetime">floor_datetime() (radiosunpy.scrapper.scrapper.Scrapper static method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="radiosunpy.client.html#radiosunpy.client.client.RATANClient.form_data">form_data() (radiosunpy.client.client.RATANClient method)</a>
 
       <ul>
         <li><a href="radiosunpy.client.html#radiosunpy.client.client.SRSClient.form_data">(radiosunpy.client.client.SRSClient method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="radiosunpy.scrapper.html#radiosunpy.scrapper.scrapper.Scrapper.form_fileslist">form_fileslist() (radiosunpy.scrapper.scrapper.Scrapper method)</a>
 </li>
       <li><a href="radiosunpy.client.html#radiosunpy.client.client.RATANClient.form_srstable_with_time_shift">form_srstable_with_time_shift() (radiosunpy.client.client.RATANClient method)</a>
@@ -212,16 +217,18 @@
 </li>
       <li><a href="radiosunpy.utils.html#radiosunpy.utils.utils.gaussian_mixture">gaussian_mixture() (in module radiosunpy.utils.utils)</a>
 </li>
+      <li><a href="radiosunpy.client.html#radiosunpy.client.client.RATANClient.get_ar_info">get_ar_info() (radiosunpy.client.client.RATANClient method)</a>
+</li>
       <li><a href="radiosunpy.client.html#radiosunpy.client.client.RATANClient.get_ar_info_from_processed">get_ar_info_from_processed() (radiosunpy.client.client.RATANClient method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="radiosunpy.client.html#radiosunpy.client.client.RATANClient.get_data">get_data() (radiosunpy.client.client.RATANClient method)</a>
 
       <ul>
         <li><a href="radiosunpy.client.html#radiosunpy.client.client.SRSClient.get_data">(radiosunpy.client.client.SRSClient method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="radiosunpy.time.html#radiosunpy.time.timerange.TimeRange.get_dates">get_dates() (radiosunpy.time.timerange.TimeRange method)</a>
 </li>
       <li><a href="radiosunpy.client.html#radiosunpy.client.client.RATANClient.get_local_sources_info_from_processed">get_local_sources_info_from_processed() (radiosunpy.client.client.RATANClient method)</a>
@@ -481,7 +488,16 @@
 
 
 
-<h3>Navigation</h3>
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
@@ -495,16 +511,6 @@
   </ul></li>
 </ul>
 </div>
-<search id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</search>
-<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -521,8 +527,8 @@
       &#169;2024, Igor Lysov, Evgenii Kurochkin, Andrey Shendrik, Irina Knyazeva.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.4.7</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.0.2</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
     </div>
 
