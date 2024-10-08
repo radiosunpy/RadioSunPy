@@ -10,7 +10,7 @@ from astropy.table import Column, MaskedColumn, vstack, Table, join
 from astropy.io import fits
 import pandas as pd
 from scipy.interpolate import interp1d
-from scipy.integrate import trapezoid
+from scipy.integrate import trapezoid, cumulative_trapezoid
 from scipy.optimize import minimize
 from scipy.optimize import curve_fit
 from scipy.optimize import leastsq
@@ -563,6 +563,100 @@ class RATANClient(BaseClient):
         ar_info_part2 = Table([ar_numbers, total_flux_list, max_amplitude_list, max_x_list, min_x_list],
                               names=('Number', 'TotalFlux', 'MaxAmplitude', 'MaxLat', 'MinLat'))
         ar_info = join(ar_info_part1, ar_info_part2, keys='Number')
+        return fits.HDUList([primary_hdu, fits.BinTableHDU(ar_info)])
+    
+    def find_ar_intervals_using_peaks(self, x, y, ar_table):
+        peaks_indices, _ = find_peaks(y)
+        minima_indices, _ = find_peaks(-y)
+
+        ar_intervals = []
+        for number, center_x in ar_table[['Number', 'Latitude']]:
+            peak_distances = np.abs(x[peaks_indices] - center_x)
+            center_index = peaks_indices[np.argmin(peak_distances)]
+
+            left_minima = minima_indices[minima_indices < center_index]
+            right_minima = minima_indices[minima_indices > center_index]
+
+            if len(left_minima) > 0:
+                left_index = left_minima[-1]
+            else:
+                left_index = 0 
+
+            if len(right_minima) > 0:
+                right_index = right_minima[0]
+            else:
+                right_index = len(y) - 1 
+
+            ar_interval = (x[left_index], x[right_index])
+            ar_intervals.append(ar_interval)
+
+        ar_table_with_intervals = ar_table.copy()
+        ar_table_with_intervals.add_column(Column(data=ar_intervals, name='Interval'))
+        return ar_table_with_intervals
+    
+    def compute_fluxes(self, x, y, ar_table, mode='I'):
+        y = np.atleast_2d(y)
+        cumulative_integral = cumulative_trapezoid(y, x, axis=1, initial=0)
+
+        cum_integral_interp = interp1d(
+            x, cumulative_integral, kind='linear', axis=1,
+            fill_value="extrapolate", bounds_error=False
+        )
+
+        intervals = np.array(ar_table['Interval'])
+        left_x = intervals[:, 0].astype(np.float64)
+        right_x = intervals[:, 1].astype(np.float64)
+
+        left_x, right_x = np.minimum(left_x, right_x), np.maximum(left_x, right_x)
+
+        cum_int_left = cum_integral_interp(left_x)
+        cum_int_right = cum_integral_interp(right_x)
+
+        fluxes = (cum_int_right - cum_int_left)
+
+        col_name = 'Flux_' + mode
+        flux_column = Column(data=fluxes.T, name=col_name)
+        ar_table_with_fluxes = ar_table.copy()
+        ar_table_with_fluxes.add_column(flux_column)
+        return ar_table_with_fluxes
+    
+    def get_ar_info(self, 
+                    pr_data: Union[str, fits.hdu.hdulist.HDUList], 
+                    **kwargs) -> Table:
+        assert isinstance(pr_data, (str, pathlib.PosixPath, fits.hdu.hdulist.HDUList)), \
+            'Processed data should be link to file, path to fits data of fits data'
+        if isinstance(pr_data, (str, pathlib.PosixPath)):
+            _, processed = self.process_fits_data(pr_data,
+                                                  save_path=None,
+                                                  save_with_original=False)
+        else:
+            processed = pr_data
+
+        if bad_freq is None:
+            bad_freq = [15.0938, 15.2812, 15.4688, 15.6562, 15.8438, 16.0312, 16.2188, 16.4062]
+
+        srs_table = self.form_srstable_with_time_shift(processed)
+
+        CDELT1 = processed[0].header['CDELT1']
+        CRPIX = processed[0].header['CRPIX1']
+        FREQ = processed[3].data
+        bad_freq = np.isin(FREQ, bad_freq)
+        I = processed[1].data
+        V = processed[2].data
+        mask = processed[4].data.astype(bool)
+        I, V, FREQ = I[~bad_freq], V[~bad_freq], FREQ[~bad_freq]
+        x = np.linspace(
+            - CRPIX * CDELT1,
+            (V.shape[1] - CRPIX) * CDELT1,
+            num=V.shape[1]
+        )
+
+        primary_hdu = fits.PrimaryHDU(FREQ)
+        primary_hdu.header = processed[0].header
+        
+        ar_intervals = self.find_ar_intervals_using_peaks(x[mask], I[0][mask], srs_table)
+        ar_info = self.compute_fluxes(x, I, ar_intervals, mode='I')
+        ar_info = self.compute_fluxes(x, V, ar_intervals, mode='V')
         return fits.HDUList([primary_hdu, fits.BinTableHDU(ar_info)])
 
     def condition(self, year, month, data_match):
