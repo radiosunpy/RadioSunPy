@@ -35,5 +35,5 @@ setup(
         "Topic :: Scientific/Engineering :: Physics"
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.9',
+    python_requires='>=3.10',
 )
