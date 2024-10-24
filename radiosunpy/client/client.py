@@ -697,7 +697,7 @@ class RATANClient(BaseClient):
         
         ar_intervals = self.find_ar_intervals_using_peaks(x[mask], I[0][mask], srs_table)
         ar_info = self.compute_fluxes(x, I, ar_intervals, mode='I')
-        ar_info = self.compute_fluxes(x, V, ar_intervals, mode='V')
+        ar_info = self.compute_fluxes(x, V, ar_info, mode='V')
         return fits.HDUList([primary_hdu, fits.BinTableHDU(ar_info)])
 
     def condition(self, year, month, data_match):
