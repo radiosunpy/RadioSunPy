@@ -644,7 +644,21 @@
     
 <div class="viewcode-block" id="RATANClient.find_ar_intervals_using_peaks">
 <a class="viewcode-back" href="../../../radiosunpy.client.html#radiosunpy.client.client.RATANClient.find_ar_intervals_using_peaks">[docs]</a>
-    <span class="k">def</span> <span class="nf">find_ar_intervals_using_peaks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">ar_table</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">find_ar_intervals_using_peaks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> 
+                                    <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> 
+                                    <span class="n">ar_table</span><span class="p">:</span> <span class="n">Table</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Table</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Identify intervals around active region centers using peak detection</span>
+
+<span class="sd">        :param x: Array of x-coordinates, typically representing time or position</span>
+<span class="sd">        :type x: np.ndarray</span>
+<span class="sd">        :param y: Array of y-coordinates, representing the signal intensity</span>
+<span class="sd">        :type y: np.ndarray</span>
+<span class="sd">        :param ar_table: Table with active region info, including &#39;Number&#39; and &#39;Latitude&#39;</span>
+<span class="sd">        :type ar_table: Table</span>
+<span class="sd">        :return: Table with active region numbers and calculated intervals</span>
+<span class="sd">        :rtype: Table</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">peaks_indices</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
         <span class="n">minima_indices</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">(</span><span class="o">-</span><span class="n">y</span><span class="p">)</span>
 
@@ -676,7 +690,24 @@
     
 <div class="viewcode-block" id="RATANClient.compute_fluxes">
 <a class="viewcode-back" href="../../../radiosunpy.client.html#radiosunpy.client.client.RATANClient.compute_fluxes">[docs]</a>
-    <span class="k">def</span> <span class="nf">compute_fluxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">ar_table</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;I&#39;</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">compute_fluxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> 
+                       <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> 
+                       <span class="n">ar_table</span><span class="p">:</span> <span class="n">Table</span><span class="p">,</span> 
+                       <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;I&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Table</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate fluxes for active regions over specified intervals.</span>
+
+<span class="sd">        :param x: Array of x-coordinates, typically representing time or position.</span>
+<span class="sd">        :type x: np.ndarray</span>
+<span class="sd">        :param y: Array of y-coordinates, representing the signal intensity. Supports 2D arrays.</span>
+<span class="sd">        :type y: np.ndarray</span>
+<span class="sd">        :param ar_table: Table containing active region info, including &#39;Interval&#39;.</span>
+<span class="sd">        :type ar_table: Table</span>
+<span class="sd">        :param mode: Mode of flux calculation, defaults to &#39;I&#39;.</span>
+<span class="sd">        :type mode: str</span>
+<span class="sd">        :return: Table with active region info and calculated fluxes.</span>
+<span class="sd">        :rtype: Table</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
         <span class="n">cumulative_integral</span> <span class="o">=</span> <span class="n">cumulative_trapezoid</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
@@ -708,6 +739,15 @@
     <span class="k">def</span> <span class="nf">get_ar_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
                     <span class="n">pr_data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">fits</span><span class="o">.</span><span class="n">hdu</span><span class="o">.</span><span class="n">hdulist</span><span class="o">.</span><span class="n">HDUList</span><span class="p">],</span> 
                     <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Table</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieve Extract active region information from processed FITS data.</span>
+<span class="sd">        </span>
+<span class="sd">        :param pr_data: Path to FITS file, URL, or FITS HDUList with processed data.</span>
+<span class="sd">        :type pr_data: Union[str, fits.hdu.hdulist.HDUList]</span>
+<span class="sd">        :param kwargs: Additional keyword arguments for processing options.</span>
+<span class="sd">        :return: FITS HDUList containing frequency data and active region information.</span>
+<span class="sd">        :rtype: Table</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pr_data</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PosixPath</span><span class="p">,</span> <span class="n">fits</span><span class="o">.</span><span class="n">hdu</span><span class="o">.</span><span class="n">hdulist</span><span class="o">.</span><span class="n">HDUList</span><span class="p">)),</span> \
             <span class="s1">&#39;Processed data should be link to file, path to fits data of fits data&#39;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pr_data</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PosixPath</span><span class="p">)):</span>

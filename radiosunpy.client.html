@@ -227,8 +227,25 @@ and matching with NOAA active location.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="radiosunpy.client.client.RATANClient.compute_fluxes">
-<span class="sig-name descname"><span class="pre">compute_fluxes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ar_table</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'I'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/radiosunpy/client/client.html#RATANClient.compute_fluxes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiosunpy.client.client.RATANClient.compute_fluxes" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-name descname"><span class="pre">compute_fluxes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ar_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Table</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'I'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Table</span></span></span><a class="reference internal" href="_modules/radiosunpy/client/client.html#RATANClient.compute_fluxes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiosunpy.client.client.RATANClient.compute_fluxes" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate fluxes for active regions over specified intervals.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>np.ndarray</em>) – Array of x-coordinates, typically representing time or position.</p></li>
+<li><p><strong>y</strong> (<em>np.ndarray</em>) – Array of y-coordinates, representing the signal intensity. Supports 2D arrays.</p></li>
+<li><p><strong>ar_table</strong> (<em>Table</em>) – Table containing active region info, including ‘Interval’.</p></li>
+<li><p><strong>mode</strong> (<em>str</em>) – Mode of flux calculation, defaults to ‘I’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Table with active region info and calculated fluxes.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Table</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="radiosunpy.client.client.RATANClient.condition">
@@ -282,8 +299,24 @@ and matching with NOAA active location.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="radiosunpy.client.client.RATANClient.find_ar_intervals_using_peaks">
-<span class="sig-name descname"><span class="pre">find_ar_intervals_using_peaks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ar_table</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/radiosunpy/client/client.html#RATANClient.find_ar_intervals_using_peaks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiosunpy.client.client.RATANClient.find_ar_intervals_using_peaks" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-name descname"><span class="pre">find_ar_intervals_using_peaks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ar_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Table</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Table</span></span></span><a class="reference internal" href="_modules/radiosunpy/client/client.html#RATANClient.find_ar_intervals_using_peaks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiosunpy.client.client.RATANClient.find_ar_intervals_using_peaks" title="Link to this definition">¶</a></dt>
+<dd><p>Identify intervals around active region centers using peak detection</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>np.ndarray</em>) – Array of x-coordinates, typically representing time or position</p></li>
+<li><p><strong>y</strong> (<em>np.ndarray</em>) – Array of y-coordinates, representing the signal intensity</p></li>
+<li><p><strong>ar_table</strong> (<em>Table</em>) – Table with active region info, including ‘Number’ and ‘Latitude’</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Table with active region numbers and calculated intervals</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Table</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="radiosunpy.client.client.RATANClient.form_data">
@@ -327,7 +360,22 @@ with correct NOAA coordinates for RATAN time difference</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="radiosunpy.client.client.RATANClient.get_ar_info">
 <span class="sig-name descname"><span class="pre">get_ar_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pr_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">HDUList</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Table</span></span></span><a class="reference internal" href="_modules/radiosunpy/client/client.html#RATANClient.get_ar_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#radiosunpy.client.client.RATANClient.get_ar_info" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Retrieve Extract active region information from processed FITS data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pr_data</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>fits.hdu.hdulist.HDUList</em><em>]</em>) – Path to FITS file, URL, or FITS HDUList with processed data.</p></li>
+<li><p><strong>kwargs</strong> – Additional keyword arguments for processing options.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>FITS HDUList containing frequency data and active region information.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Table</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="radiosunpy.client.client.RATANClient.get_ar_info_from_processed">
