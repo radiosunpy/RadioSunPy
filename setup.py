@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="radiosunpy",
-    version="0.1.0",
+    version="0.2.0",
     author=[
         "Igor Lysov <iilysov.sci@gmail.com>", 
         "Irina Knyazeva <iknyazeva@gmail.com>", 
@@ -17,15 +17,15 @@ setup(
     long_description_content_type="text/markdown",
     packages=find_packages(),
     install_requires=[
-        "astropy" == "6.1.3",
-        "numpy" == "2.1.1",
-        "pandas" == "2.2.2",
-        "python-dateutil" == "2.9.0.post0",
-        "requests" == "2.32.3",
-        "scipy" == "1.14.1",
+        "astropy" >= "6.1.3",
+        "numpy" >= "1.26.0",
+        "pandas" >= "2.2.2",
+        "python-dateutil" >= "2.8.2",
+        "requests" >= "2.32.3",
+        "scipy" == "1.13.1",
         "PyWavelets" == "1.7.0",
-        "et-xmlfile" == "1.1.0",
-        "openpyxl" == "3.1.5" 
+        "et-xmlfile" >= "1.1.0",
+        "openpyxl" >= "3.1.5" 
     ],
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -35,5 +35,5 @@ setup(
         "Topic :: Scientific/Engineering :: Physics"
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.10',
+    python_requires='>=3.9',
 )

@@ -565,7 +565,21 @@ class RATANClient(BaseClient):
         ar_info = join(ar_info_part1, ar_info_part2, keys='Number')
         return fits.HDUList([primary_hdu, fits.BinTableHDU(ar_info)])
     
-    def find_ar_intervals_using_peaks(self, x, y, ar_table):
+    def find_ar_intervals_using_peaks(self, x: np.ndarray, 
+                                    y: np.ndarray, 
+                                    ar_table: Table) -> Table:
+        """
+        Identify intervals around active region centers using peak detection
+
+        :param x: Array of x-coordinates, typically representing time or position
+        :type x: np.ndarray
+        :param y: Array of y-coordinates, representing the signal intensity
+        :type y: np.ndarray
+        :param ar_table: Table with active region info, including 'Number' and 'Latitude'
+        :type ar_table: Table
+        :return: Table with active region numbers and calculated intervals
+        :rtype: Table
+        """
         peaks_indices, _ = find_peaks(y)
         minima_indices, _ = find_peaks(-y)
 
@@ -594,7 +608,24 @@ class RATANClient(BaseClient):
         ar_table_with_intervals.add_column(Column(data=ar_intervals, name='Interval'))
         return ar_table_with_intervals
     
-    def compute_fluxes(self, x, y, ar_table, mode='I'):
+    def compute_fluxes(self, x: np.ndarray, 
+                       y: np.ndarray, 
+                       ar_table: Table, 
+                       mode: str = 'I') -> Table:
+        """
+        Calculate fluxes for active regions over specified intervals.
+
+        :param x: Array of x-coordinates, typically representing time or position.
+        :type x: np.ndarray
+        :param y: Array of y-coordinates, representing the signal intensity. Supports 2D arrays.
+        :type y: np.ndarray
+        :param ar_table: Table containing active region info, including 'Interval'.
+        :type ar_table: Table
+        :param mode: Mode of flux calculation, defaults to 'I'.
+        :type mode: str
+        :return: Table with active region info and calculated fluxes.
+        :rtype: Table
+        """
         y = np.atleast_2d(y)
         cumulative_integral = cumulative_trapezoid(y, x, axis=1, initial=0)
 
@@ -623,6 +654,15 @@ class RATANClient(BaseClient):
     def get_ar_info(self, 
                     pr_data: Union[str, fits.hdu.hdulist.HDUList], 
                     **kwargs) -> Table:
+        """
+        Retrieve Extract active region information from processed FITS data.
+        
+        :param pr_data: Path to FITS file, URL, or FITS HDUList with processed data.
+        :type pr_data: Union[str, fits.hdu.hdulist.HDUList]
+        :param kwargs: Additional keyword arguments for processing options.
+        :return: FITS HDUList containing frequency data and active region information.
+        :rtype: Table
+        """
         assert isinstance(pr_data, (str, pathlib.PosixPath, fits.hdu.hdulist.HDUList)), \
             'Processed data should be link to file, path to fits data of fits data'
         if isinstance(pr_data, (str, pathlib.PosixPath)):

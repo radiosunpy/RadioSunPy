@@ -11,6 +11,21 @@ def plot_ratan_fits_data(
                         is_calibrated: bool = False,
                         plot_V: Optional[bool] = True,
                         plot_I: Optional[bool] = True) -> None: 
+    """
+    Plot RATAN-600 FITS data for Stokes I and/or V parameters.
+    
+    :param pr_data: Path to FITS file, URL, or FITS HDUList with the RATAN-600 data.
+    :type pr_data: Union[str, fits.hdu.hdulist.HDUList]
+    :param is_calibrated: Indicates whether the data is already calibrated. Defaults to False.
+    :type is_calibrated: bool
+    :param plot_V: Whether to plot Stokes V data. Defaults to True.
+    :type plot_V: Optional[bool]
+    :param plot_I: Whether to plot Stokes I data. Defaults to True.
+    :type plot_I: Optional[bool]
+    :return: None
+    :rtype: None
+    :raises ValueError: If both plot_I and plot_V are set to False.
+    """
     if not plot_I and not plot_V:
         raise ValueError("At least one of plot_I or plot_V must be True.")
 
