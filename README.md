@@ -22,8 +22,8 @@ pip install radiosunpy
 ## Usage
  
 For more detailed information about the package and its functionalities, please refer to the [official documentation](https://radiosunpy.github.io/RadioSunPy/).
-The best place to start is the in  [example gallery](https://github.com/radiosunpy/RadioSunPy/tree/main/notebooks)  
-also includes a collection of shorter and more specific examples of using sunpy.
+The best place to start is the in [example gallery](https://github.com/radiosunpy/RadioSunPy/tree/main/notebooks)  
+also includes a collection of shorter and more specific examples of using radiosunpy, or you can look at example usages in [colab notebook](https://colab.research.google.com/drive/1JCaW_Kj-1Al-sDoNhJRawlSit5gietKm?usp=sharing) if you want to try it yourself. 
 
 
 ## Contributing
