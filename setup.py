@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="radiosunpy",
-    version="0.2.0",
+    version="0.2.1",
     author=[
         "Igor Lysov <iilysov.sci@gmail.com>", 
         "Irina Knyazeva <iknyazeva@gmail.com>", 

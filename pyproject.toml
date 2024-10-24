@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "radiosunpy"
-version = "0.2.0"
+version = "0.2.1"
 description = "RATAN-600 radioastronomical solar data and methods Python library"
 authors = [
     "Igor Lysov <iilysov.sci@gmail.com>", 

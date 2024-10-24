@@ -652,7 +652,8 @@ class RATANClient(BaseClient):
         return ar_table_with_fluxes
     
     def get_ar_info(self, 
-                    pr_data: Union[str, fits.hdu.hdulist.HDUList], 
+                    pr_data: Union[str, fits.hdu.hdulist.HDUList],
+                    bad_freq: Optional[list[float]] = None, 
                     **kwargs) -> Table:
         """
         Retrieve Extract active region information from processed FITS data.
